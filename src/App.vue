@@ -83,9 +83,13 @@
         <RecordList 
           :records="records"
           :filtered-records="filteredRecords"
+          :filter-status="filterStatus"
+          :filtered-count="filteredCount"
+          :total-count="totalCount"
           v-model:search-term="searchTerm"
           @edit="handleEdit"
           @delete="handleDelete"
+          @set-filter-status="setFilterStatus"
         />
       </div>
     </main>
@@ -136,6 +140,9 @@ const isLoggedIn = ref(false)
 const showLogin = ref(false)
 const showProfile = ref(false)
 
+// === MODULE 9 ADDED: Status Filter State ===
+const filterStatus = ref('All')
+
 const profile = reactive({
   name: 'Acosta Machale',
   email: 'acosta@gmail.com',
@@ -151,19 +158,35 @@ const editingRecord = computed(() => {
   return records.value.find(r => r.id === editingId.value) || null
 })
 
+// === MODULE 9 MODIFIED: filteredRecords now applies status filter + search ===
 const filteredRecords = computed(() => {
+  let result = records.value
+
+  // Apply status filter first
+  if (filterStatus.value !== 'All') {
+    result = result.filter(record => record.status === filterStatus.value)
+  }
+
+  // Apply search filter
   const keyword = searchTerm.value.toLowerCase().trim()
-  if (!keyword) return records.value
-  return records.value.filter(record =>
-    record.assetCode.toLowerCase().includes(keyword) ||
-    record.equipmentName.toLowerCase().includes(keyword) ||
-    record.brand.toLowerCase().includes(keyword) ||
-    record.category.toLowerCase().includes(keyword) ||
-    record.model.toLowerCase().includes(keyword) ||
-    record.location.toLowerCase().includes(keyword) ||
-    record.serialNumber.toLowerCase().includes(keyword)
-  )
+  if (keyword) {
+    result = result.filter(record =>
+      record.assetCode.toLowerCase().includes(keyword) ||
+      record.equipmentName.toLowerCase().includes(keyword) ||
+      record.brand.toLowerCase().includes(keyword) ||
+      record.category.toLowerCase().includes(keyword) ||
+      record.model.toLowerCase().includes(keyword) ||
+      record.location.toLowerCase().includes(keyword) ||
+      record.serialNumber.toLowerCase().includes(keyword)
+    )
+  }
+
+  return result
 })
+
+// === MODULE 9 ADDED: Count helpers ===
+const filteredCount = computed(() => filteredRecords.value.length)
+const totalCount = computed(() => records.value.length)
 
 const alertClass = computed(() => {
   if (alert.type === 'success') return 'bg-emerald-100 text-emerald-800 border border-emerald-200'
@@ -190,7 +213,6 @@ onMounted(() => {
       const parsed = JSON.parse(savedProfile)
       Object.assign(profile, parsed)
     } else {
-      // Initialize default profile
       saveProfile()
     }
   } catch (e) {
@@ -227,9 +249,13 @@ function showAlert(type, message) {
   setTimeout(() => { alert.message = '' }, 4000)
 }
 
+// === MODULE 9 ADDED: Filter setter ===
+function setFilterStatus(status) {
+  filterStatus.value = status
+}
+
 // Auth
 function handleLogin(credentials) {
-  // Demo account validation
   if (credentials.email === 'acosta@gmail.com' && credentials.password === 'admin123') {
     isLoggedIn.value = true
     saveAuth()
@@ -259,7 +285,6 @@ function handleProfileSave(updatedProfile) {
 // CRUD
 function handleSubmit(formData) {
   if (editingId.value) {
-    // Update
     const index = records.value.findIndex(r => r.id === editingId.value)
     if (index !== -1) {
       records.value[index] = { ...formData, id: editingId.value }
@@ -268,7 +293,6 @@ function handleSubmit(formData) {
     }
     editingId.value = null
   } else {
-    // Create
     const newRecord = {
       ...formData,
       id: Date.now().toString()
@@ -281,7 +305,6 @@ function handleSubmit(formData) {
 
 function handleEdit(record) {
   editingId.value = record.id
-  // Scroll to form
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
