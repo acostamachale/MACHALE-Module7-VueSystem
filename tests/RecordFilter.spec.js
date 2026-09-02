@@ -57,3 +57,61 @@ describe('Record Search / Filter', () => {
     expect(filtered.value.length).toBe(0)
   })
 })
+describe('Record Status Filter', () => {
+  const mockRecords = ref([
+    { id: '1', assetCode: 'EQP-001', equipmentName: 'Dell Latitude', brand: 'Dell', category: 'Laptop', model: '5520', location: 'Room 101', serialNumber: 'SN123', status: 'Available' },
+    { id: '2', assetCode: 'EQP-002', equipmentName: 'HP ProDesk', brand: 'HP', category: 'Desktop', model: '400', location: 'IT Office', serialNumber: 'SN456', status: 'In Use' },
+    { id: '3', assetCode: 'EQP-003', equipmentName: 'Cisco Router', brand: 'Cisco', category: 'Router', model: '2901', location: 'Server Room', serialNumber: 'SN789', status: 'Under Repair' },
+    { id: '4', assetCode: 'EQP-004', equipmentName: 'Old Printer', brand: 'Canon', category: 'Printer', model: 'X200', location: 'Storage', serialNumber: 'SN000', status: 'Retired' }
+  ])
+
+  function useStatusFilter(records, filterStatus) {
+    return computed(() => {
+      if (filterStatus.value === 'All') return records.value
+      return records.value.filter(record => record.status === filterStatus.value)
+    })
+  }
+
+  it('shows all records when status filter is All', () => {
+    const filterStatus = ref('All')
+    const filtered = useStatusFilter(mockRecords, filterStatus)
+    expect(filtered.value.length).toBe(4)
+  })
+
+  it('filters records by Available status', () => {
+    const filterStatus = ref('Available')
+    const filtered = useStatusFilter(mockRecords, filterStatus)
+    expect(filtered.value.length).toBe(1)
+    expect(filtered.value[0].equipmentName).toBe('Dell Latitude')
+  })
+
+  it('filters records by In Use status', () => {
+    const filterStatus = ref('In Use')
+    const filtered = useStatusFilter(mockRecords, filterStatus)
+    expect(filtered.value.length).toBe(1)
+    expect(filtered.value[0].status).toBe('In Use')
+  })
+
+  it('filters records by Under Repair status', () => {
+    const filterStatus = ref('Under Repair')
+    const filtered = useStatusFilter(mockRecords, filterStatus)
+    expect(filtered.value.length).toBe(1)
+    expect(filtered.value[0].assetCode).toBe('EQP-003')
+  })
+
+  it('filters records by Retired status', () => {
+    const filterStatus = ref('Retired')
+    const filtered = useStatusFilter(mockRecords, filterStatus)
+    expect(filtered.value.length).toBe(1)
+    expect(filtered.value[0].status).toBe('Retired')
+  })
+
+  it('returns empty array when no records match status filter', () => {
+    const emptyRecords = ref([
+      { id: '1', assetCode: 'EQP-001', equipmentName: 'Dell', status: 'Available' }
+    ])
+    const filterStatus = ref('Retired')
+    const filtered = useStatusFilter(emptyRecords, filterStatus)
+    expect(filtered.value.length).toBe(0)
+  })
+})

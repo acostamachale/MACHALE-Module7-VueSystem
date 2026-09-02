@@ -1,31 +1,53 @@
 <template>
   <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-    <!-- Header with Search -->
-    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div class="flex items-center gap-2">
-        <div class="bg-primary/10 p-1.5 rounded-lg">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
+    <!-- Header with Filter and Search -->
+    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 space-y-4">
+      <!-- Top Row: Title + Search -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <div class="bg-primary/10 p-1.5 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Equipment Records</h2>
+            <p class="text-xs text-slate-500">{{ totalCount }} total record{{ totalCount !== 1 ? 's' : '' }}</p>
+          </div>
         </div>
-        <div>
-          <h2 class="text-lg font-bold text-slate-800">Equipment Records</h2>
-          <p class="text-xs text-slate-500">{{ records.length }} total record{{ records.length !== 1 ? 's' : '' }}</p>
+
+        <!-- Search -->
+        <div class="relative w-full sm:w-72">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input 
+            :value="searchTerm"
+            @input="$emit('update:searchTerm', $event.target.value)"
+            type="text" 
+            placeholder="Search by name, code, brand..."
+            class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+          />
         </div>
       </div>
 
-      <!-- Search -->
-      <div class="relative w-full sm:w-72">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input 
-          :value="searchTerm"
-          @input="$emit('update:searchTerm', $event.target.value)"
-          type="text" 
-          placeholder="Search by name, code, brand..."
-          class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-        />
+      <!-- Bottom Row: Status Filter -->
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm font-medium text-slate-600">Filter by Status:</span>
+        <button
+          v-for="status in ['All', 'Available', 'In Use', 'Under Repair', 'Retired']"
+          :key="status"
+          @click="$emit('setFilterStatus', status)"
+          :class="filterStatus === status
+            ? 'bg-blue-600 text-white shadow-sm'
+            : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-100'"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+        >
+          {{ status }}
+        </button>
+        <span class="ml-auto text-sm text-slate-500 font-medium">
+          Showing {{ filteredCount }} of {{ totalCount }} records
+        </span>
       </div>
     </div>
 
@@ -113,8 +135,11 @@
 
     <!-- Summary Footer -->
     <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center">
-      <span>Showing {{ filteredRecords.length }} of {{ records.length }} records</span>
-      <span v-if="searchTerm" class="text-primary">Filtered by: "{{ searchTerm }}"</span>
+      <span>
+        Showing {{ filteredCount }} of {{ totalCount }} records
+        <span v-if="filterStatus !== 'All'" class="text-blue-600 font-medium ml-1">(Status: {{ filterStatus }})</span>
+        <span v-if="searchTerm" class="text-primary font-medium ml-1">(Search: "{{ searchTerm }}")</span>
+      </span>
     </div>
   </div>
 </template>
@@ -123,10 +148,13 @@
 const props = defineProps({
   records: Array,
   filteredRecords: Array,
-  searchTerm: String
+  searchTerm: String,
+  filterStatus: String,
+  filteredCount: Number,
+  totalCount: Number
 })
 
-const emit = defineEmits(['update:searchTerm', 'edit', 'delete'])
+const emit = defineEmits(['update:searchTerm', 'edit', 'delete', 'setFilterStatus'])
 
 function handleDelete(record) {
   const confirmed = window.confirm(`Are you sure you want to delete "${record.equipmentName}" (${record.assetCode})?`)
